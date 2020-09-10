@@ -7,7 +7,43 @@ import * as PathUtils from '@sanity/util/paths'
 import {Path, PathSegment} from './typedefs/path'
 import PatchEvent from './PatchEvent'
 import {Type, Marker} from './typedefs'
-import {emptyArray, emptyObject} from './utils/empty'
+import {emptyArray} from './utils/empty'
+import {Context as ChangeConnectorContext} from '@sanity/base/lib/change-indicators'
+
+import {isObject} from 'lodash'
+
+function getCompareValueForPath(compareValue: any, path: Path) {
+  if (!compareValue || path.length === 0) {
+    return compareValue
+  }
+  const [head, ...tail] = path
+  if (typeof head === 'string' && isObject(compareValue)) {
+    return getCompareValueForPath(compareValue[head], tail)
+  }
+  if (typeof head === 'object' && Array.isArray(compareValue)) {
+    const item = compareValue.find(item => item._key === head._key)
+    return getCompareValueForPath(item?.diff, tail)
+  }
+  throw new Error('Invalid access for path on diff')
+}
+import {Context as ChangeConnectorContext} from '@sanity/base/lib/change-indicators'
+
+import {isObject} from 'lodash'
+
+function getCompareValueForPath(compareValue: any, path: Path) {
+  if (!compareValue || path.length === 0) {
+    return compareValue
+  }
+  const [head, ...tail] = path
+  if (typeof head === 'string' && isObject(compareValue)) {
+    return getCompareValueForPath(compareValue[head], tail)
+  }
+  if (typeof head === 'object' && Array.isArray(compareValue)) {
+    const item = compareValue.find(item => item._key === head._key)
+    return getCompareValueForPath(item?.diff, tail)
+  }
+  throw new Error('Invalid access for path on diff')
+}
 
 const EMPTY_PROPS = emptyObject<{}>()
 const EMPTY_MARKERS: Marker[] = emptyArray()
@@ -24,6 +60,7 @@ interface Props {
   presence?: FormFieldPresence[]
   focusPath: Path
   markers: Marker[]
+  compareValue?: any
   level: number
   isRoot?: boolean
   path: Array<PathSegment>
@@ -31,6 +68,15 @@ interface Props {
   onKeyUp?: (ev: React.KeyboardEvent) => void
   onKeyPress?: (ev: React.KeyboardEvent) => void
 }
+
+const isPrimitive = value =>
+  typeof value === 'string' ||
+  typeof value === 'boolean' ||
+  typeof value === 'undefined' ||
+  typeof value === 'number'
+
+const isPrimitiveChanged = (value, otherValue) =>
+  isPrimitive(value) && isPrimitive(otherValue) && value !== otherValue
 
 interface Context {
   presence?: FormFieldPresence[]
@@ -199,6 +245,7 @@ export class FormBuilderInput extends React.Component<Props> {
       type,
       level,
       focusPath,
+      compareValue,
       isRoot,
       presence: explicitPresence,
       ...rest
@@ -227,6 +274,7 @@ export class FormBuilderInput extends React.Component<Props> {
     const isLeaf = childFocusPath.length === 0 || childFocusPath[0] === PathUtils.FOCUS_TERMINATOR
     const leafProps = isLeaf ? EMPTY_PROPS : {focusPath: childFocusPath}
 
+    const hasFocus = PathUtils.hasFocus(focusPath, path)
     const childPresenceInfo =
       readOnly || !presence || presence.length === 0
         ? EMPTY_PRESENCE
@@ -237,24 +285,35 @@ export class FormBuilderInput extends React.Component<Props> {
               path: trimChildPath(path, presence.path)
             }))
 
+    const childCompareValue = getCompareValueForPath(compareValue, path)
+
     return (
       <div data-focus-path={PathUtils.toString(path)}>
         <FormFieldPresenceContext.Provider value={childPresenceInfo}>
-          <InputComponent
-            {...rest}
-            {...leafProps}
-            isRoot={isRoot}
-            value={value}
-            readOnly={readOnly || type.readOnly}
-            markers={childMarkers.length === 0 ? EMPTY_MARKERS : childMarkers}
-            type={type}
-            presence={childPresenceInfo}
-            onChange={this.handleChange}
-            onFocus={this.handleFocus}
-            onBlur={this.handleBlur}
-            level={level}
-            ref={this.setInput}
-          />
+          <ChangeConnectorContext.Provider
+            value={{
+              isChanged: isPrimitiveChanged(value, childCompareValue),
+              hasFocus,
+              path: this.getValuePath()
+            }}
+          >
+            <InputComponent
+              {...rest}
+              {...leafProps}
+              isRoot={isRoot}
+              value={value}
+              diff={childCompareValue}
+              readOnly={readOnly || type.readOnly}
+              markers={childMarkers.length === 0 ? EMPTY_MARKERS : childMarkers}
+              type={type}
+              presence={childPresenceInfo}
+              onChange={this.handleChange}
+              onFocus={this.handleFocus}
+              onBlur={this.handleBlur}
+              level={level}
+              ref={this.setInput}
+            />
+          </ChangeConnectorContext.Provider>
         </FormFieldPresenceContext.Provider>
       </div>
     )

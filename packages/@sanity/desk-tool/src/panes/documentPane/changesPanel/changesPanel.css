@@ -51,6 +51,7 @@
 }
 
 .changeList {
+  margin-left: 32px;
   display: grid;
   grid-gap: 1em;
 }
