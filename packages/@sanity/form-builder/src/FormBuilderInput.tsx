@@ -4,27 +4,12 @@ import shallowEquals from 'shallow-equals'
 import {FormFieldPresence, FormFieldPresenceContext} from '@sanity/base/presence'
 import generateHelpUrl from '@sanity/generate-help-url'
 import * as PathUtils from '@sanity/util/paths'
+import {isObject} from 'lodash'
 import {Path, PathSegment} from './typedefs/path'
 import PatchEvent from './PatchEvent'
 import {Type, Marker} from './typedefs'
 import {emptyArray, emptyObject} from './utils/empty'
 import {Context as ChangeConnectorContext} from '@sanity/base/lib/change-indicators'
-import {isObject} from 'lodash'
-
-function getCompareValueForPath(compareValue: any, path: Path) {
-  if (!compareValue || path.length === 0) {
-    return compareValue
-  }
-  const [head, ...tail] = path
-  if (typeof head === 'string' && isObject(compareValue)) {
-    return getCompareValueForPath(compareValue[head], tail)
-  }
-  if (typeof head === 'object' && Array.isArray(compareValue)) {
-    const item = compareValue.find(item => item._key === head._key)
-    return getCompareValueForPath(item?.diff, tail)
-  }
-  throw new Error('Invalid access for path on diff')
-}
 
 const EMPTY_PROPS = emptyObject<{}>()
 const EMPTY_MARKERS: Marker[] = emptyArray()
@@ -50,14 +35,20 @@ interface Props {
   onKeyPress?: (ev: React.KeyboardEvent) => void
 }
 
-const isPrimitive = value =>
-  typeof value === 'string' ||
-  typeof value === 'boolean' ||
-  typeof value === 'undefined' ||
-  typeof value === 'number'
-
-const isPrimitiveChanged = (value, otherValue) =>
-  isPrimitive(value) && isPrimitive(otherValue) && value !== otherValue
+function getValueForPath(compareValue: any, path: Path) {
+  if (!compareValue || path.length === 0) {
+    return compareValue
+  }
+  const [head, ...tail] = path
+  if (typeof head === 'string' && isObject(compareValue)) {
+    return getValueForPath(compareValue[head], tail)
+  }
+  if (typeof head === 'object' && Array.isArray(compareValue)) {
+    const item = compareValue.find(item => item._key === head._key) || undefined
+    return getValueForPath(item, tail)
+  }
+  throw new Error('Invalid access for path')
+}
 
 interface Context {
   presence?: FormFieldPresence[]
@@ -266,14 +257,15 @@ export class FormBuilderInput extends React.Component<Props> {
               path: trimChildPath(path, presence.path)
             }))
 
-    const childCompareValue = getCompareValueForPath(compareValue, path)
+    const childCompareValue = getValueForPath(compareValue, path)
 
     return (
       <div data-focus-path={PathUtils.toString(path)}>
         <FormFieldPresenceContext.Provider value={childPresenceInfo}>
           <ChangeConnectorContext.Provider
             value={{
-              isChanged: isPrimitiveChanged(value, childCompareValue),
+              value,
+              compareValue: childCompareValue,
               hasFocus,
               path: this.getValuePath()
             }}
@@ -283,7 +275,7 @@ export class FormBuilderInput extends React.Component<Props> {
               {...leafProps}
               isRoot={isRoot}
               value={value}
-              diff={childCompareValue}
+              compareValue={childCompareValue}
               readOnly={readOnly || type.readOnly}
               markers={childMarkers.length === 0 ? EMPTY_MARKERS : childMarkers}
               type={type}

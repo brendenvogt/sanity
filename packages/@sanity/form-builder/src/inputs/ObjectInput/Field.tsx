@@ -4,12 +4,11 @@ import {FormBuilderInput} from '../../FormBuilderInput'
 import InvalidValue from '../InvalidValueInput'
 import {resolveTypeName} from '../../utils/resolveTypeName'
 import styles from './styles/Field.css'
-import {Diff} from '@sanity/diff'
 
 type FieldProps = {
   field: any
   value?: any
-  diff: Diff<unknown> | null
+  compareValue?: any
   onChange: (...args: any[]) => any
   onFocus: (...args: any[]) => any
   onBlur: (...args: any[]) => any
@@ -51,7 +50,7 @@ export default class Field extends React.PureComponent<FieldProps> {
       markers,
       focusPath,
       filterField,
-      diff,
+      compareValue,
       presence
     } = this.props
     if (typeof value !== 'undefined') {
@@ -89,7 +88,7 @@ export default class Field extends React.PureComponent<FieldProps> {
           focusPath={focusPath}
           filterField={filterField}
           markers={markers}
-          diff={diff}
+          compareValue={compareValue}
           level={level}
           presence={presence}
           ref={this.setInput}
