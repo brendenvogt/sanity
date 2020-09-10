@@ -19,6 +19,7 @@ interface Props {
   readOnly?: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: Doc | null
+  compareValue: Doc | null
   initialValue: Doc
   isConnected: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,7 +110,7 @@ export class FormView extends React.PureComponent<Props> {
   }
 
   render() {
-    const {id, value, initialValue, markers, schemaType} = this.props
+    const {id, value, initialValue, markers, compareValue, schemaType} = this.props
     const {focusPath, filterField} = this.state
     const readOnly = this.isReadOnly()
     const documentId = value && value._id && value._id.replace(/^drafts\./, '')
@@ -133,6 +134,7 @@ export class FormView extends React.PureComponent<Props> {
           <EditForm
             id={id}
             value={value || initialValue}
+            compareValue={compareValue}
             filterField={filterField}
             focusPath={focusPath}
             markers={markers}

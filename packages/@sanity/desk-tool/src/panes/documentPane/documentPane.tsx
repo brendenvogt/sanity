@@ -16,9 +16,11 @@ import {InspectDialog} from './inspectDialog'
 import {DocumentActionShortcuts, isInspectHotkey, isPreviewHotkey} from './keyboardShortcuts'
 import {DocumentStatusBar} from './statusBar'
 import {Timeline, sinceTimelineProps, revTimelineProps} from './timeline'
+import {Tracker} from '@sanity/base/lib/change-indicators'
 import {Doc, DocumentViewType} from './types'
 
 import styles from './documentPane.css'
+import {ConnectorsOverlay} from './ConnectorsOverlay'
 
 interface DocumentPaneProps {
   connectionState: 'connecting' | 'connected' | 'reconnecting'
@@ -39,6 +41,7 @@ interface DocumentPaneProps {
   title?: string
   views: DocumentViewType[]
   value: Doc | null
+  compareValue: Doc | null
 }
 
 // eslint-disable-next-line complexity
@@ -61,6 +64,7 @@ export function DocumentPane(props: DocumentPaneProps) {
     title: paneTitle,
     schemaType,
     value,
+    compareValue,
     views = []
   } = props
 
@@ -68,6 +72,8 @@ export function DocumentPane(props: DocumentPaneProps) {
   const {setRange, timeline, historyController} = useDocumentHistory()
   const historyState = historyController.selectionState
   const [showValidationTooltip, setShowValidationTooltip] = useState<boolean>(false)
+  const [documentPanelScrollTop, setDocumentPanelScrollTop] = useState(0)
+  const [changePanelScrollTop, setChangePanelScrollTop] = useState(0)
   const paneRouter = usePaneRouter()
   const [timelineMode, setTimelineMode] = useState<'since' | 'rev' | 'closed'>('closed')
   const activeViewId = paneRouter.params.view || (views[0] && views[0].id)
@@ -210,7 +216,14 @@ export function DocumentPane(props: DocumentPaneProps) {
           isSelected ? styles.isActive : styles.isDisabled
         ])}
       >
-        <div className={styles.documentAndChangesContainer}>
+        <Tracker
+          component={ConnectorsOverlay}
+          componentProps={{
+            className: styles.documentAndChangesContainer,
+            documentPanelScrollTop,
+            changePanelScrollTop
+          }}
+        >
           <div className={styles.documentContainer}>
             {isInspectOpen && <InspectDialog value={value} onClose={handleInspectClose} />}
 
@@ -240,8 +253,10 @@ export function DocumentPane(props: DocumentPaneProps) {
               timelineMode={timelineMode}
               toggleInspect={toggleInspect}
               value={value}
+              compareValue={compareValue}
               versionSelectRef={versionSelectRef}
               views={views}
+              onScrollTopChange={setDocumentPanelScrollTop}
             />
           </div>
 
@@ -256,10 +271,11 @@ export function DocumentPane(props: DocumentPaneProps) {
                 schemaType={schemaType}
                 since={historyController.sinceTime}
                 timelineMode={timelineMode}
+                onScrollTopChange={setChangePanelScrollTop}
               />
             </div>
           )}
-        </div>
+        </Tracker>
 
         <div className={styles.footerContainer}>
           <DocumentStatusBar

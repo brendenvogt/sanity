@@ -122,6 +122,8 @@ export const DocumentPaneProvider = withInitialValue((props: Props) => {
         paneKey={props.paneKey}
         schemaType={schemaType}
         value={value}
+        /* todo if history view is open we need to use the document we're currently comparing against */
+        compareValue={editState.published}
         views={props.views}
       />
     </DocumentHistoryProvider>

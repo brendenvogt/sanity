@@ -6,7 +6,8 @@ import {
   DocumentChangeContext,
   DiffAnnotationTooltipContent,
   ChangeList,
-  Chunk
+  Chunk,
+  DocumentChangeContextProps
 } from '@sanity/field/diff'
 import CloseIcon from 'part:@sanity/base/close-icon'
 import {UserAvatar} from '@sanity/base/components'
@@ -16,9 +17,29 @@ import {AvatarStack} from 'part:@sanity/components/avatar'
 import {useTimeAgo} from '@sanity/base/hooks'
 import {formatTimelineEventLabel} from '../timeline'
 import {useDocumentHistory} from '../documentHistory'
-
+import {Reporter} from '@sanity/base/lib/change-indicators'
+import * as PathUtils from '@sanity/util/paths'
+import scrollIntoViewIfNeeded from 'smooth-scroll-into-view-if-needed'
 import styles from './changesPanel.css'
 import {collectLatestAuthorAnnotations} from './helpers'
+
+const ChangeFieldWrapper = (props: {change: any; children: React.ReactNode}) => {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const scrollTo = React.useCallback(() => {
+    if (ref.current) {
+      scrollIntoViewIfNeeded(ref.current, {
+        scrollMode: 'if-needed',
+        block: 'center',
+        behavior: 'smooth'
+      })
+    }
+  }, [])
+  return (
+    <Reporter id={`change-${PathUtils.toString(props.change.path)}`} data={{scrollTo}}>
+      <div ref={ref}>{props.children}</div>
+    </Reporter>
+  )
+}
 
 interface ChangesPanelProps {
   changesSinceSelectRef: React.MutableRefObject<HTMLDivElement | null>
@@ -28,6 +49,7 @@ interface ChangesPanelProps {
   onTimelineOpen: () => void
   schemaType: ObjectSchemaType
   since: Chunk | null
+  onScrollTopChange: (number) => void
   timelineMode: 'rev' | 'since' | 'closed'
 }
 
@@ -38,16 +60,32 @@ export function ChangesPanel({
   loading,
   onTimelineOpen,
   since,
+  onScrollTopChange,
   schemaType,
   timelineMode
 }: ChangesPanelProps): React.ReactElement | null {
   const {close: closeHistory, historyController} = useDocumentHistory()
   const diff: ObjectDiff | null = historyController.currentObjectDiff() as any
 
-  const documentContext = React.useMemo(() => ({documentId, schemaType}), [documentId, schemaType])
+  const documentContext: DocumentChangeContextProps = React.useMemo(
+    () => ({
+      documentId,
+      schemaType,
+      FieldWrapper: ChangeFieldWrapper
+    }),
+    [documentId, schemaType]
+  )
+
   const changeAnnotations = React.useMemo(
     () => (diff ? collectLatestAuthorAnnotations(diff) : []),
     [diff]
+  )
+
+  const handleScroll = useCallback(
+    (event: React.UIEvent) => {
+      onScrollTopChange(event.currentTarget.scrollTop)
+    },
+    [onScrollTopChange]
   )
 
   // This is needed to stop the ClickOutside-handler (in the Popover) to treat the click
@@ -119,17 +157,18 @@ export function ChangesPanel({
         </div>
       </header>
 
-      <div className={styles.body}>
+      <Reporter id="changesPanel" component="div" className={styles.body} onScroll={handleScroll}>
         {loading || !diff ? (
           <div>Loading…</div>
         ) : (
           <DocumentChangeContext.Provider value={documentContext}>
             <div className={styles.changeList}>
               <ChangeList diff={diff} schemaType={schemaType} />
+              <div style={{height: 2000}} />
             </div>
           </DocumentChangeContext.Provider>
         )}
-      </div>
+      </Reporter>
     </div>
   )
 }
