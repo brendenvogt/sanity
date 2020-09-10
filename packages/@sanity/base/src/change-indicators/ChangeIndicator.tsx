@@ -2,6 +2,7 @@ import React from 'react'
 import {FieldContext} from './FieldContext'
 import {Reporter} from './elementTracker'
 import isEqual from 'react-fast-compare'
+import scrollIntoViewIfNeeded from 'smooth-scroll-into-view-if-needed'
 
 const isPrimitive = value =>
   typeof value === 'string' ||
@@ -9,32 +10,34 @@ const isPrimitive = value =>
   typeof value === 'undefined' ||
   typeof value === 'number'
 
-const isPrimitiveEqual = (value, otherValue) =>
-  isPrimitive(value) && isPrimitive(otherValue) && value === otherValue
+// todo: lazy compare debounced (possibly with intersection observer)
 
-// todo: lazy compare debounced
-
-function ChangeBar(props: {children?: React.ReactNode}) {
-  return (
+const ChangeBar = React.forwardRef(
+  (props: {isChanged: boolean; children?: React.ReactNode}, ref: any) => (
     <div
+      ref={ref}
       style={{
+        paddingRight: 4,
         position: 'relative'
       }}
     >
       {props.children}
-      <div
-        style={{
-          position: 'absolute',
-          right: -4,
-          top: 0,
-          bottom: 0,
-          width: 2,
-          backgroundColor: '#2276FC'
-        }}
-      />
+      {props.isChanged && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 2,
+            backgroundColor: '#2276FC'
+          }}
+        />
+      )}
     </div>
   )
-}
+)
+
 interface Props {
   compareDeep: boolean
   children?: React.ReactNode
@@ -45,8 +48,11 @@ export function ChangeIndicator(props: Props) {
 
   const ref = React.useRef<HTMLDivElement>(null)
   const scrollTo = React.useCallback(() => {
-    // @ts-ignore
-    ref.current.scrollIntoView({scrollMode: 'if-needed', block: 'center', behavior: 'smooth'})
+    scrollIntoViewIfNeeded(ref.current, {
+      scrollMode: 'if-needed',
+      block: 'center',
+      behavior: 'smooth'
+    })
   }, [])
 
   const {value, compareValue} = context
@@ -58,7 +64,7 @@ export function ChangeIndicator(props: Props) {
   // return <ChangeBar>{props.children}</ChangeBar>
 
   return (
-    <div ref={ref}>
+    <ChangeBar isChanged={isChanged} ref={ref}>
       {isChanged && context.hasFocus ? (
         <Reporter
           id={`changed-field`}
@@ -68,6 +74,6 @@ export function ChangeIndicator(props: Props) {
       ) : (
         props.children || null
       )}
-    </div>
+    </ChangeBar>
   )
 }

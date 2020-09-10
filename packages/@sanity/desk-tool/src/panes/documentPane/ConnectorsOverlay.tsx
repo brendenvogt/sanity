@@ -2,6 +2,7 @@ import React from 'react'
 import styles from './ConnectorsOverlay.css'
 import {connectorLinePath, linePathFromPoints} from '../../components/changeConnector/svgHelpers'
 import {Arrows} from '../../components/changeConnector/Arrows'
+import * as PathUtils from '@sanity/util/paths'
 
 interface Props {
   children?: React.ReactNode
@@ -31,7 +32,9 @@ export function ConnectorsOverlay(props: Props) {
   const changedRegion =
     changedField &&
     regions.find(
-      region => region !== changesPanel && region.id === `change-${changedField.data.path}`
+      region =>
+        region !== changesPanel &&
+        region.id === `change-${PathUtils.toString(changedField.data.path)}`
     )
 
   // note: this assumes the changes panel header and the document panel always have the same height

@@ -61,7 +61,8 @@
     "react-props-stream": "^1.0.0",
     "rxjs": "^6.5.3",
     "semver-compare": "^1.0.0",
-    "shallow-equals": "^1.0.0"
+    "shallow-equals": "^1.0.0",
+    "smooth-scroll-into-view-if-needed": "^1.1.29"
   },
   "devDependencies": {
     "jest": "^26.4.2",

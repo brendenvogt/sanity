@@ -19,7 +19,7 @@ import {formatTimelineEventLabel} from '../timeline'
 import {useDocumentHistory} from '../documentHistory'
 import {Reporter} from '@sanity/base/lib/change-indicators'
 import * as PathUtils from '@sanity/util/paths'
-
+import scrollIntoViewIfNeeded from 'smooth-scroll-into-view-if-needed'
 import styles from './changesPanel.css'
 import {collectLatestAuthorAnnotations} from './helpers'
 
@@ -27,8 +27,11 @@ const ChangeFieldWrapper = (props: {change: any; children: React.ReactNode}) => 
   const ref = React.useRef<HTMLDivElement>(null)
   const scrollTo = React.useCallback(() => {
     if (ref.current) {
-      //@ts-ignore
-      ref.current.scrollIntoView({scrollMode: 'if-needed', block: 'center', behavior: 'smooth'})
+      scrollIntoViewIfNeeded(ref.current, {
+        scrollMode: 'if-needed',
+        block: 'center',
+        behavior: 'smooth'
+      })
     }
   }, [])
   return (
