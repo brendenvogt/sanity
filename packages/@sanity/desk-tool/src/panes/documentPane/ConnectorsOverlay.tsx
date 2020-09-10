@@ -1,7 +1,7 @@
 import React from 'react'
-import {Line} from '../../components/changeConnector/Line'
 import styles from './ConnectorsOverlay.css'
-import {connectorLinePath} from '../../components/changeConnector/svgHelpers'
+import {connectorLinePath, linePathFromPoints} from '../../components/changeConnector/svgHelpers'
+import {Arrows} from '../../components/changeConnector/Arrows'
 
 interface Props {
   children?: React.ReactNode
@@ -69,6 +69,25 @@ export function ConnectorsOverlay(props: Props) {
               left: changeMarkerLeft,
               top: changedRegion.rect.top - changePanelScrollTop - topEdge + 8
             }
+            const leftBarFrom = {
+              left: changesPanel.rect.left,
+              top: Math.max(changedField.rect.top - documentPanelScrollTop) - topEdge
+            }
+            const leftBarTo = {
+              left: changesPanel.rect.left,
+              top:
+                changedField.rect.top + changedField.rect.height - documentPanelScrollTop - topEdge
+            }
+
+            const rightBarTo = {
+              left: changeMarkerLeft,
+              top:
+                changedRegion.rect.top + changedRegion.rect.height - changePanelScrollTop - topEdge
+            }
+            const rightBarFrom = {
+              left: changeMarkerLeft,
+              top: Math.max(changedRegion.rect.top - changePanelScrollTop) - topEdge
+            }
             return (
               <React.Fragment key={`field-${changedField.id}`}>
                 {changedRegion && (
@@ -86,32 +105,14 @@ export function ConnectorsOverlay(props: Props) {
                 )}
                 {changedRegion && (
                   <g className={styles.connector}>
-                    <Line
-                      from={{
-                        left: changeMarkerLeft,
-                        top: Math.max(changedRegion.rect.top - changePanelScrollTop) - topEdge
-                      }}
-                      to={{
-                        left: changeMarkerLeft,
-                        top:
-                          changedRegion.rect.top +
-                          changedRegion.rect.height -
-                          changePanelScrollTop -
-                          topEdge
-                      }}
-                    />
-                    <Line
-                      from={{
-                        left: changesPanel.rect.left,
-                        top: Math.max(changedField.rect.top - documentPanelScrollTop) - topEdge
-                      }}
-                      to={{
-                        left: changesPanel.rect.left,
-                        top:
-                          changedField.rect.top +
-                          changedField.rect.height -
-                          documentPanelScrollTop -
-                          topEdge
+                    <path d={linePathFromPoints(rightBarFrom, rightBarTo)} />
+                    <path d={linePathFromPoints(leftBarFrom, leftBarTo)} />
+                    <Arrows
+                      from={connectorFrom}
+                      to={connectorTo}
+                      bounds={{
+                        width: 0,
+                        height: changesPanel.rect.height
                       }}
                     />
                   </g>
