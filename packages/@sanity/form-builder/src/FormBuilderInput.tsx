@@ -7,27 +7,8 @@ import * as PathUtils from '@sanity/util/paths'
 import {Path, PathSegment} from './typedefs/path'
 import PatchEvent from './PatchEvent'
 import {Type, Marker} from './typedefs'
-import {emptyArray} from './utils/empty'
+import {emptyArray, emptyObject} from './utils/empty'
 import {Context as ChangeConnectorContext} from '@sanity/base/lib/change-indicators'
-
-import {isObject} from 'lodash'
-
-function getCompareValueForPath(compareValue: any, path: Path) {
-  if (!compareValue || path.length === 0) {
-    return compareValue
-  }
-  const [head, ...tail] = path
-  if (typeof head === 'string' && isObject(compareValue)) {
-    return getCompareValueForPath(compareValue[head], tail)
-  }
-  if (typeof head === 'object' && Array.isArray(compareValue)) {
-    const item = compareValue.find(item => item._key === head._key)
-    return getCompareValueForPath(item?.diff, tail)
-  }
-  throw new Error('Invalid access for path on diff')
-}
-import {Context as ChangeConnectorContext} from '@sanity/base/lib/change-indicators'
-
 import {isObject} from 'lodash'
 
 function getCompareValueForPath(compareValue: any, path: Path) {
